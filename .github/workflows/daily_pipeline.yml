@@ -33,3 +33,8 @@ jobs:
       # Executa o seu script de dados
       - name: Rodar pipeline.py
         run: python pipeline.py
+        # Executa o seu script de dados usando o segredo do cofre
+      - name: Rodar pipeline.py
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python pipeline.py

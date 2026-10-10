@@ -1,3 +1,4 @@
+import os
 import logging
 import requests
 import pandas as pd
@@ -7,7 +8,7 @@ from sqlalchemy import create_engine
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 def extract_currency_data():
-    """Extrai cotações da API pública Open Exchange (compatível com servidores em nuvem)."""
+    """Extrai cotações da API pública Open Exchange."""
     url = "https://open.er-api.com/v6/latest/USD"
     logging.info("Buscando dados da API...")
     response = requests.get(url, timeout=10)
@@ -37,10 +38,27 @@ def transform_data(raw_data):
     df = pd.DataFrame(records)
     return df
 
-def load_to_sql(df, db_name="warehouse.db", table_name="cotacoes_moedas"):
-    """Grava os dados na tabela SQL."""
+def load_to_sql(df, table_name="cotacoes_moedas"):
+    """
+    Grava os dados no banco SQL.
+    Prioriza a DATABASE_URL do PostgreSQL na nuvem; caso não exista, usa SQLite local.
+    """
+    db_url = os.getenv("DATABASE_URL")
+    
+    if db_url:
+        logging.info("Conectando ao banco PostgreSQL na nuvem (Supabase)...")
+        # Garante o uso explícito do driver psycopg2 instalado
+        if db_url.startswith("postgres://"):
+            db_url = db_url.replace("postgres://", "postgresql+psycopg2://", 1)
+        elif db_url.startswith("postgresql://") and not db_url.startswith("postgresql+psycopg2://"):
+            db_url = db_url.replace("postgresql://", "postgresql+psycopg2://", 1)
+            
+        engine = create_engine(db_url)
+    else:
+        logging.info("DATABASE_URL não configurada. Usando SQLite local...")
+        engine = create_engine("sqlite:///warehouse.db")
+
     logging.info(f"Salvando dados na tabela SQL '{table_name}'...")
-    engine = create_engine(f"sqlite:///{db_name}")
     df.to_sql(table_name, con=engine, if_exists="append", index=False)
     logging.info("Carga concluída com sucesso!")
 
