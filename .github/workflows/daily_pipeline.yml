@@ -22,7 +22,7 @@ jobs:
       - name: Configurar o Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.12'
 
       # Instala as bibliotecas listadas no seu requirements.txt
       - name: Instalar dependencias
